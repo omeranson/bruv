@@ -6,6 +6,7 @@ import re
 import json
 import fcntl
 import termios
+import time
 import struct
 
 from itertools import imap, ifilter
@@ -18,6 +19,8 @@ from gerrit import (
     QueryOptions,
     Gerrit,
 )
+
+from tinydb import TinyDB, Query
 
 
 def get_terminal_size():
@@ -57,8 +60,27 @@ host = conf.get("host", "review.openstack.org")
 port = conf.get("port", 29418)
 query = conf.get("query", "")
 template_path = str(conf.get("template_file", "display.tmpl"))
+db_path = str(conf.get("db_file", "bruv.db"))
 
 PATCH_SET_INFO_RE = re.compile(r"^(?:Patch Set|Uploaded patch set) ([\d]+)")
+
+class DbAPI(object):
+    def __init__(self):
+        db = TinyDB(db_path)
+        self.db_table = db.table('changes')
+
+    def set(self, change_number, data):
+        data['number'] = change_number
+        old = self.get(change_number)
+        if old:
+            self.db_table.update(data, eids=[old.eid])
+        else:
+            self.db_table.insert(data)
+
+    def get(self, change_number):
+        query = Query()
+        saved_record = self.db_table.get(query.number == change_number)
+        return saved_record
 
 
 def get_private_key():
@@ -118,25 +140,70 @@ def add_last_checked_information(change):
     return change
 
 
+def mark_is_read(change):
+    db = DbAPI()
+    saved_record = db.get(change['number'])
+    if saved_record:
+        change['lastRead'] = saved_record['lastRead']
+        change['is_read'] = (float(change['lastRead']) > float(change['lastUpdated']))
+    else:
+        saved_record = {}
+        change['is_read'] = False
+
+    return change
+
+
+def unread(change):
+    return not change['is_read']
+
+
 def fit_width(s, n):
     if len(s) > n:
         return s[:n-3] + "..."
     else:
         return s + " " * (n - len(s))
 
-pkey = get_private_key()
-g = Gerrit(host, port, username, pkey)
-changes = g.query(query,
-                  options=[QueryOptions.Comments,
-                           QueryOptions.CurrentPatchSet])
+args = sys.argv
+if len(args) <= 1:
+    pkey = get_private_key()
+    g = Gerrit(host, port, username, pkey)
+    changes = g.query(query,
+                      options=[QueryOptions.Comments,
+                               QueryOptions.CurrentPatchSet])
 
-changes = imap(remove_jenkins_comments, changes)
-changes = imap(add_last_checked_information, changes)
-changes = ifilter(not_mine, changes)
-changes = ifilter(has_changed_since_comment, changes)
-sys.stdout.write(str(Template(
-    file=template_path,
-    searchList=[{"changes": changes,
-                 "fit_width": fit_width,
-                 "terminal_size": get_terminal_size(),
-                 }])))
+    changes = imap(remove_jenkins_comments, changes)
+    changes = imap(add_last_checked_information, changes)
+    changes = imap(mark_is_read, changes)
+    changes = ifilter(not_mine, changes)
+    changes = ifilter(has_changed_since_comment, changes)
+    changes = ifilter(unread, changes)
+    sys.stdout.write(str(Template(
+        file=template_path,
+        searchList=[{"changes": changes,
+                     "fit_width": fit_width,
+                     "terminal_size": get_terminal_size(),
+                     }])))
+elif args[1] == 'read':
+    db = DbAPI()
+    number = args[2]
+    record = db.get(number)
+    if not record:
+        record = {}
+    record['lastRead'] = time.mktime(time.gmtime())
+    db.set(number, record)
+elif args[1] == 'unread':
+    db = DbAPI()
+    number = args[2]
+    record = db.get(number)
+    if not record:
+        record = {}
+    record['lastRead'] = 0
+    db.set(number, record)
+elif args[1] == 'showrecord':
+    db = DbAPI()
+    number = args[2]
+    record = db.get(number)
+    print number, record
+elif args[1] == 'showdb':
+    db = DbAPI()
+    print db.db_table.all()
