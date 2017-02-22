@@ -63,6 +63,7 @@ username = conf.get("username", "john")
 host = conf.get("host", "review.openstack.org")
 port = conf.get("port", 29418)
 query = conf.get("query", "")
+queries = conf.get("queries", {})
 template_path = str(conf.get("template_file", "display.tmpl"))
 db_path = str(conf.get("db_file", "bruv.db"))
 
@@ -201,10 +202,13 @@ def fit_width(s, n):
     else:
         return s + " " * (n - len(s))
 
-def get_changes():
+def get_changes(query_=None):
     pkey = get_private_key()
     g = Gerrit(host, port, username, pkey)
-    changes = g.query(query,
+    if query_ is None:
+        query_ = query
+    query_ = queries.get(query_, query_)
+    changes = g.query(query_,
                       options=[QueryOptions.Comments,
                                QueryOptions.CurrentPatchSet,
                                QueryOptions.CommitMessage])
@@ -221,7 +225,8 @@ def get_changes():
     return changes
 
 def handle_list(args=None):
-    changes = get_changes()
+    query_ = args.query if args else None
+    changes = get_changes(query_)
     sys.stdout.write(str(Template(
         file=template_path,
         searchList=[{"changes": changes,
@@ -265,6 +270,7 @@ subparsers = parser.add_subparsers(title='subcommands')
 list_subparser = subparsers.add_parser('list',
                                        help='List all (unread) reviews')
 list_subparser.set_defaults(func=handle_list)
+list_subparser.add_argument('--query', help='The query to filter the changes')
 
 read_subparser = subparsers.add_parser('read', help='Mark a review as read')
 read_subparser.set_defaults(func=handle_read)
