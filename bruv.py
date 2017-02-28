@@ -9,6 +9,7 @@ import termios
 import time
 import struct
 import argparse
+import json
 
 from itertools import imap, ifilter
 
@@ -192,6 +193,23 @@ def mark_is_read(change):
     return change
 
 
+def set_flags(change):
+    flags = ""
+    if change['change_since_last_comment']:
+        if change['last_checked_patch_set'] == -1:
+            flags += "N"
+        else:
+            flags += "U"
+    else:
+        flags += "C"
+    if change['related_bugs']:
+        flags += "B"
+    if change['is_blueprint']:
+        flags += "P"
+    change['flags'] = flags
+    return change
+
+
 def unread(change):
     return not change['is_read']
 
@@ -219,6 +237,7 @@ def get_changes(query_=None):
     changes = imap(extract_headers, changes)
     changes = imap(does_relate_to_bug, changes)
     changes = imap(is_spec, changes)
+    changes = imap(set_flags, changes)
     #changes = ifilter(not_mine, changes)
     changes = ifilter(has_changed_since_comment, changes)
     changes = ifilter(unread, changes)
@@ -300,3 +319,19 @@ if __name__ == "__main__":
     else:
         args = parser.parse_args()
         args.func(args)
+
+# Taken from the json documentation
+def json_bruv_defaults(o):
+   try:
+       iterable = iter(o)
+   except TypeError:
+       pass
+   else:
+       return list(iterable)
+   # Let the base class default method raise the TypeError
+   return json.JSONEncoder.default(self, o)
+
+def get_json(query=None):
+    changes = get_changes(query)
+    result = json.dumps(changes, default=json_bruv_defaults)
+    return result
