@@ -20,6 +20,9 @@ table tr:nth-child(even) {
   top: 0;
   right: 0;
 }
+.selected {
+  background-color: #b0b0ff !important;
+}
 
 </style>
 <body>
@@ -42,7 +45,7 @@ table tr:nth-child(even) {
 <th/>
 <th ng-click="changeOrderTo('bugs')">Bugs</th>
 </tr>
-<tr ng-hide="hide_{{change.number}}" ng-repeat="change in changes | orderBy:orderField:reversed">
+<tr ng-hide="hide_{{change.number}}" ng-repeat="change in changes | orderBy:orderField:reversed" ng-class="{'selected': change.number == selectedNumber }" ng-click="setSelected(change.number)">
 <td>{{ change.number }}</td>
 <td>{{ change.flags }}</td>
 <td>{{ change.subject }}</td>
@@ -88,7 +91,10 @@ app.controller('changesCtrl', function($scope, $http) {
             $scope.isLoading = false
         });
     };
-    $scope.refresh()
+    $scope.refresh();
+    $scope.setSelected = function(number) {
+        $scope.selectedNumber = number;
+    };
 });
 </script>
 
