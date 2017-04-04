@@ -81,7 +81,7 @@ app.controller('changesCtrl', function($scope, $http) {
         }
     };
     $scope.markAsRead = function(number) {
-        $http.get("read/number");
+        $http.get("read/" + number);
         $scope['hide_' + number] = true;
     };
     $scope.refresh = function() {
