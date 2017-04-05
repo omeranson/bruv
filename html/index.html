@@ -55,7 +55,7 @@ table tr:nth-child(even) {
 <th/>
 <th ng-click="changeOrderTo('bugs')">Bugs</th>
 </tr>
-<tr ng-hide="hide_{{change.number}}" ng-repeat="change in changes | orderBy:orderField:reversed" ng-class="{'selected': change.number == selectedNumber }" ng-click="setSelected(change.number)">
+<tr ng-repeat="change in changes | orderBy:orderField:reversed" ng-class="{'selected': change.number == selectedNumber }" ng-click="setSelected(change.number)">
 <td>{{ change.number }}</td>
 <td>{{ change.flags }}</td>
 <td>{{ change.subject }}</td>
@@ -94,7 +94,12 @@ app.controller('changesCtrl', function($scope, $http) {
     // Mark as read + hiding
     $scope.markAsRead = function(number) {
         $http.get("read/" + number);
-        $scope['hide_' + number] = true;
+        for(var idx = $scope.changes.length - 1; idx >= 0; idx--) {
+            if ($scope.changes[idx].number === number) {
+                $scope.changes.splice(idx, 1);
+                break;
+            }
+        }
     };
     // Select query
     $scope.availableQueries = [
