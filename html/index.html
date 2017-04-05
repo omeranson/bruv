@@ -3,6 +3,8 @@
 <head><title>BRUV</title></head>
 <!-- script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script -->
 <script src="js/angular.min.js"></script>
+<link rel="stylesheet" href="css/isteven-multi-select.css">
+<script src="js/isteven-multi-select.js"></script>
 <style>
 table, th , td {
   border: 1px solid grey;
@@ -30,7 +32,15 @@ table tr:nth-child(even) {
 <div ng-app="bruv" ng-controller="changesCtrl">
 
 <h1>BRUV</h1>
-<div id="loading" ng-show="isLoading"><h1>LOADING...</h1></div>
+<div id="loading" ng-show="isLoading != 0"><h1>LOADING...</h1></div>
+<div isteven-multi-select
+    input-model="availableQueries"
+    output-model="selectedQueries"
+    tick-property="ticked"
+    item-label="name description"
+    button-label="name"
+    on-close="refresh()"
+></div>
 <div ng-click="refresh()">Refresh</div>
 
 <table border="1" width="100%">
@@ -65,8 +75,9 @@ Total: {{changes.length}} reviews
 </div>
 
 <script>
-var app = angular.module('bruv', []);
+var app = angular.module('bruv', ["isteven-multi-select"]);
 app.controller('changesCtrl', function($scope, $http) {
+    // Sorting
     $scope.reversed = true
     $scope.changeOrderTo = function(newOrderField) {
         if ($scope.orderField == newOrderField) {
@@ -80,18 +91,38 @@ app.controller('changesCtrl', function($scope, $http) {
             $scope.reversed = false
         }
     };
+    // Mark as read + hiding
     $scope.markAsRead = function(number) {
         $http.get("read/" + number);
         $scope['hide_' + number] = true;
     };
+    // Select query
+    $scope.availableQueries = [
+        {name:"dragonflow", description:"Dragonflow project", ticked:true},
+        {name:"neutron", description:"Neutron project", ticked:false},
+        {name:"ovsdbapp", description:"OVSD API", ticked:false}
+    ];
+    // Refresh view
+    $scope.isLoading = 0;
+    $scope.changes = [];
     $scope.refresh = function() {
-        $scope.isLoading = true
-        $http.get("list/dragonflow").then(function(response) {
-            $scope.changes = response.data;
-            $scope.isLoading = false
+        $scope.isFirst = true;
+        angular.forEach($scope.availableQueries, function( value, key ) {
+            if (value.ticked) {
+                $scope.isLoading = $scope.isLoading + 1;
+                $http.get("list/" + value.name).then(function(response) {
+                    if ($scope.isFirst) {
+                        $scope.isFirst = false;
+                        $scope.changes = [];
+                    }
+                    $scope.changes = $scope.changes.concat(response.data);
+                    $scope.isLoading = $scope.isLoading - 1;
+                });
+            }
         });
     };
     $scope.refresh();
+    // Color selection
     $scope.setSelected = function(number) {
         $scope.selectedNumber = number;
     };

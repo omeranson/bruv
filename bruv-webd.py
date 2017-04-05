@@ -6,9 +6,27 @@ import json
 import bottle
 import bruv
 
-@bottle.route('/js/angular.min.js')
-def index():
-    return bottle.static_file('js/angular.min.js', root='.')
+
+ALLOWED_JS_FILES = {
+    'angular.min.js',
+    'isteven-multi-select.js',
+}
+
+ALLOWED_CSS_FILES = {
+    'isteven-multi-select.css',
+}
+
+@bottle.route('/js/<jsfile>')
+def index(jsfile):
+    if jsfile not in ALLOWED_JS_FILES:
+        raise bottle.HTTPError(status=404)
+    return bottle.static_file('js/' + jsfile, root='.')
+
+@bottle.route('/css/<cssfile>')
+def index(cssfile):
+    if cssfile not in ALLOWED_CSS_FILES:
+        raise bottle.HTTPError(status=404)
+    return bottle.static_file('css/' + cssfile, root='.')
 
 @bottle.route('/')
 def index():
