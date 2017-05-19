@@ -76,7 +76,7 @@ Total: {{changes.length}} reviews
 
 <script>
 var app = angular.module('bruv', ["isteven-multi-select"]);
-app.controller('changesCtrl', function($scope, $http) {
+app.controller('changesCtrl', ['$scope', '$document', '$http', function($scope, $document, $http) {
     // Sorting
     $scope.reversed = true
     $scope.changeOrderTo = function(newOrderField) {
@@ -131,7 +131,12 @@ app.controller('changesCtrl', function($scope, $http) {
     $scope.setSelected = function(number) {
         $scope.selectedNumber = number;
     };
-});
+    $document.bind("keypress", function(event) {
+        if (event.which == 114) {
+            $scope.refresh();
+        }
+    });
+}]);
 </script>
 
 </body>
