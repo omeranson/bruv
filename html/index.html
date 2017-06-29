@@ -5,6 +5,8 @@
 <script src="js/angular.min.js"></script>
 <link rel="stylesheet" href="css/isteven-multi-select.css">
 <script src="js/isteven-multi-select.js"></script>
+<script src="js/ngprogress.min.js"></script>
+<link rel="stylesheet" href="css/ngProgress.css">
 <style>
 table, th , td {
   border: 1px solid grey;
@@ -17,11 +19,6 @@ table tr:nth-child(odd) {
 table tr:nth-child(even) {
   background-color: #ffffff;
 }
-#loading {
-  position: absolute;
-  top: 0;
-  right: 0;
-}
 .selected {
   background-color: #b0b0ff !important;
 }
@@ -32,7 +29,6 @@ table tr:nth-child(even) {
 <div ng-app="bruv" ng-controller="changesCtrl">
 
 <h1>BRUV</h1>
-<div id="loading" ng-show="isLoading != 0"><h1>LOADING...</h1></div>
 <div isteven-multi-select
     input-model="availableQueries"
     output-model="selectedQueries"
@@ -75,8 +71,8 @@ Total: {{changes.length}} reviews
 </div>
 
 <script>
-var app = angular.module('bruv', ["isteven-multi-select"]);
-app.controller('changesCtrl', ['$scope', '$document', '$http', function($scope, $document, $http) {
+var app = angular.module('bruv', ["isteven-multi-select", "ngProgress"]);
+app.controller('changesCtrl', ['$scope', '$document', '$http', "ngProgressFactory", function($scope, $document, $http, $ngProgressFactory) {
     // Sorting
     $scope.reversed = true
     $scope.changeOrderTo = function(newOrderField) {
@@ -105,16 +101,20 @@ app.controller('changesCtrl', ['$scope', '$document', '$http', function($scope, 
     $scope.availableQueries = [
         {name:"dragonflow", description:"Dragonflow project", ticked:true},
         {name:"neutron", description:"Neutron project", ticked:false},
-        {name:"ovsdbapp", description:"OVSD API", ticked:false}
+        {name:"ovsdbapp", description:"OVSD API", ticked:true}
     ];
     // Refresh view
     $scope.isLoading = 0;
     $scope.changes = [];
+    $scope.progressBar = $ngProgressFactory.createInstance();
     $scope.refresh = function() {
         $scope.isFirst = true;
         angular.forEach($scope.availableQueries, function( value, key ) {
             if (value.ticked) {
                 $scope.isLoading = $scope.isLoading + 1;
+                if ($scope.isLoading == 1) {
+                        $scope.progressBar.start();
+                }
                 $http.get("list/" + value.name).then(function(response) {
                     if ($scope.isFirst) {
                         $scope.isFirst = false;
@@ -122,6 +122,9 @@ app.controller('changesCtrl', ['$scope', '$document', '$http', function($scope, 
                     }
                     $scope.changes = $scope.changes.concat(response.data);
                     $scope.isLoading = $scope.isLoading - 1;
+                    if ($scope.isLoading == 0) {
+                        $scope.progressBar.complete();
+                    }
                 });
             }
         });

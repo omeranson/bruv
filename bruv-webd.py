@@ -10,10 +10,12 @@ import bruv
 ALLOWED_JS_FILES = {
     'angular.min.js',
     'isteven-multi-select.js',
+    'ngprogress.min.js',
 }
 
 ALLOWED_CSS_FILES = {
     'isteven-multi-select.css',
+    'ngProgress.css',
 }
 
 @bottle.route('/js/<jsfile>')
