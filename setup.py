@@ -24,7 +24,6 @@ setup(name='bruv',
       ],
       entry_points = {
           'console_scripts': [
-              'bruv = bruv.bruv',
               'webruvd = bruv.webruvd:main',
           ]
       }
