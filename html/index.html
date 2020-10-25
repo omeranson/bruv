@@ -246,11 +246,13 @@ app.controller('changesCtrl', ['$scope', '$document', '$http', "ngProgressFactor
                 .style("text-anchor", "end");
 
         // Add Y axis
+	var domainMax = d3.max(data, d => d[1]);
         var y = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d[1])])
+                .domain([0, domainMax])
                 .range([ users_dist_height, 0]);
-        svg.append("g")
-                .call(d3.axisLeft(y));
+	var yAxis = d3.axisLeft(y)
+		.ticks(domainMax);
+        svg.append("g").call(yAxis);
 
         // Bars
         svg.selectAll("mybar")
