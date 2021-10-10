@@ -181,8 +181,8 @@ def add_last_checked_information(change):
         change["change_since_last_comment"] = (
             current_path_set != last_patch_set)
         if last_patch_set != current_path_set:
-            change["diff_url"] = "http://%s/#/c/%s/%d..%d" % (
-                host, change["number"], last_patch_set, current_path_set
+            change["diff_url"] = "%s/%d..%d" % (
+                change["url"], last_patch_set, current_path_set
             )
     else:
         change["change_since_last_comment"] = True
