@@ -22,7 +22,7 @@
     --build-arg PROXY_MITM=true
     ```
     Note that this is causes the pulling of the packages from github to use
-    insecure methods and not verify the SSL, which allows vaious kinds of
+    insecure methods and not verify the SSL, which allows various kinds of
     attacks. Use extreme caution when using this option!!!
 
 * In the `bruv home` directory, create a file called `bruvrc`. Edit it, and
