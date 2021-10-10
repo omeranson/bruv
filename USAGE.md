@@ -16,6 +16,14 @@
     --build-arg http_proxy=http://<proxy host>:<proxy port> \
     --build-arg https_proxy=http://<proxy host>:<proxy port>
     ```
+  * In case the proxy root CA is not trusted, add the following arguments
+    as well:
+    ```
+    --build-arg PROXY_MITM=true
+    ```
+    Note that this is causes the pulling of the packages from github to use
+    insecure methods and not verify the SSL, which allows vaious kinds of
+    attacks. Use extreme caution when using this option!!!
 
 * In the `bruv home` directory, create a file called `bruvrc`. Edit it, and
   set its content to the following:
