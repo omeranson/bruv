@@ -166,6 +166,41 @@ def add_bug_base_url(change):
     return change
 
 
+# Returns max length
+
+class ChainInformationAdder:
+    def __call__(self, changes):
+        changes = list(changes)
+        self.changemap = {}
+        self.dependencymap = {}
+        self.roots = set()
+        for change in changes:
+            self.changemap[change['number']] = change
+            changenum = change['number']
+            self.roots.add(changenum)
+            dependencies = change.get('dependsOn')
+            if dependencies:
+                self.dependencymap.setdefault(
+                        dependencies[0]['number'], []).append(changenum)
+        for changenum, deplist in self.dependencymap.items():
+            if changenum in self.changemap:
+                self.roots -= set(deplist)
+        self._add_chain_position(self.roots, 1)
+        return changes
+
+    def _add_chain_position(self, roots, pos):
+        max_chain_length = pos
+        for changenum in roots:
+            self.changemap[changenum]['chain_position'] = pos
+            chain_length = pos
+            dependencies = self.dependencymap.get(changenum)
+            if dependencies:
+                chain_length = self._add_chain_position(dependencies, pos+1)
+            self.changemap[changenum]['chain_length'] = chain_length
+            max_chain_length = max(max_chain_length, chain_length)
+        return max_chain_length
+
+
 def add_last_checked_information(change):
     last_comment = find_last_comment_by(change["comments"], username)
     change["diff_url"] = change["url"]
@@ -257,7 +292,9 @@ class ChangesFetcher(object):
         changes = self._gerrit.query(query,
                                      options=[QueryOptions.Comments,
                                               QueryOptions.CurrentPatchSet,
-                                              QueryOptions.CommitMessage])
+                                              QueryOptions.CommitMessage,
+                                              QueryOptions.Dependencies,
+                                              ])
         return self._flow(changes)
 
 _DEFAULT_FLOW = (FlowBuilder()
@@ -268,6 +305,7 @@ _DEFAULT_FLOW = (FlowBuilder()
     .add_mapper(does_relate_to_bug)
     .add_mapper(is_spec)
     .add_mapper(add_bug_base_url)
+    .add_subflow(ChainInformationAdder())
     .add_filter(has_changed_since_comment)
     .add_filter(unread)
     .build())

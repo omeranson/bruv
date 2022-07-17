@@ -48,6 +48,7 @@ table tr:nth-child(even) {
 <tr>
 <th ng-click="changeOrderTo('number')">Number</th>
 <th>Flags</th>
+<th>Chain</th>
 <th ng-click="changeOrderTo('subject')">Message</th>
 <th ng-click="changeOrderTo('project')">Project</th>
 <th ng-click="changeOrderTo('owner.name')">User Name</th>
@@ -59,6 +60,7 @@ table tr:nth-child(even) {
 <tr ng-repeat="change in changes_array | orderBy:orderField:reversed" ng-class="{'selected': change.number == selectedNumber }" ng-click="setSelected(change.number)">
 <td>{{ change.number }}</td>
 <td>{{ flags(change) }}</td>
+<td>{{ chain_position(change) }}</td>
 <td>{{ change.subject }}</td>
 <td>{{ change.project }}</td>
 <td>{{ change.owner.name }}</td>
@@ -119,6 +121,13 @@ app.controller('changesCtrl', ['$scope', '$document', '$http', "ngProgressFactor
     $scope.changes = {};
     $scope.availableQueries = []
     $scope.progressBar = $ngProgressFactory.createInstance();
+    $scope.merge_changes = function(change1, change2) {
+      if (change2.chain_length > change1.chain_length) {
+        change1.chain_length = change2.chain_length;
+	change1.chain_position = change2.chain_position;
+      }
+    }
+
     $scope.refresh = function() {
         $scope.isFirst = true;
         angular.forEach($scope.availableQueries, function( value, key ) {
@@ -132,7 +141,11 @@ app.controller('changesCtrl', ['$scope', '$document', '$http', "ngProgressFactor
                         $scope.changes = {};
                     }
                     angular.forEach(response.data, function(change) {
-                        $scope.changes[change.number] = change;
+			if ($scope.changes.hasOwnProperty(change.number)) {
+				$scope.merge_changes($scope.changes[change.number], change);
+			} else {
+				$scope.changes[change.number] = change;
+			}
                     });
                     $scope.changes_array = Object.values($scope.changes);
                     $scope.change_count = $scope.changes_array.length;
@@ -165,6 +178,11 @@ app.controller('changesCtrl', ['$scope', '$document', '$http', "ngProgressFactor
         }
         return flags;
     }
+
+    $scope.chain_position = function(change) {
+	return "[" + change.chain_position + "/" + change.chain_length + "]";
+    }
+
     $scope.bugs = function(change) {
         result = [];
         angular.forEach(change.related_bugs, function(bug) {
