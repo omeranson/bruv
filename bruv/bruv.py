@@ -96,7 +96,7 @@ class DBMDataStore(object):
 def get_data_store():
     return DBMDataStore(db_path)
 
-def get_private_key():
+def get_private_key(pkey_path):
     if not pkey_path:
         return None
     agent = paramiko.agent.Agent()
@@ -274,7 +274,7 @@ _DEFAULT_FLOW = (FlowBuilder()
 
 
 def get_changes(query):
-    pkey = get_private_key()
+    pkey = get_private_key(pkey_path)
     cf = ChangesFetcher(host, port, username, pkey)
     cf.set_flow(_DEFAULT_FLOW)
     return cf.get_changes(query)
